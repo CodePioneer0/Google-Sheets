@@ -8,7 +8,7 @@ const auth = new google.auth.GoogleAuth({
 
 async function writeToSheet(values) {
   const sheets = google.sheets({ version: "v4", auth });
-  const spreadsheetId = "1nIGBwrJ1tj04o6pv41CcP08TugEq4vS5l-L-i7_7Tdg";
+  const spreadsheetId = "1DZrPiYA2anm7pWcZc6zNsfQu-Ipj2nvxe1_if2LNqOc";
   const range = "Sheet1!A1";
   const valueInputOption = "USER_ENTERED";
   const resource = { values };
@@ -26,10 +26,24 @@ async function writeToSheet(values) {
   }
 }
 
-async function readSheet() {
+async function readPaymentData() {
   const sheets = google.sheets({ version: "v4", auth });
-  const spreadsheetId = "1nIGBwrJ1tj04o6pv41CcP08TugEq4vS5l-L-i7_7Tdg";
-  const range = "Sheet1!A1:C6";
+  const spreadsheetId = "1DZrPiYA2anm7pWcZc6zNsfQu-Ipj2nvxe1_if2LNqOc";
+  const range = "PaymentDetail2425!A1:G6";
+  try {
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range,
+    });
+    return res.data.values;
+  } catch (err) {
+    console.error("error", err);
+  }
+}
+async function readMaintenanceCharges() {
+  const sheets = google.sheets({ version: "v4", auth });
+  const spreadsheetId = "1DZrPiYA2anm7pWcZc6zNsfQu-Ipj2nvxe1_if2LNqOc";
+  const range = "MaintenanceCharges2425!A1:H6";
   try {
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId,
@@ -54,21 +68,23 @@ async function readSheet() {
 // })();
 
 (async () => {
-    const reader = await readSheet();
-    console.log(reader);
-    const doc = new PDFDocument();
-    doc.pipe(fs.createWriteStream('output.pdf'));
-    doc.font('Helvetica-Bold').fontSize(18).text('Data from the sheet', { align: 'center' });
-    doc.moveDown();
-    doc.font('Helvetica').fontSize(12);
-    reader.forEach(row => {
-        doc.font('Helvetica-Bold').fontSize(18).text('Name : ', { continued: true }).font('Helvetica-Bold').fontSize(18).text(row[0]);
-        doc.font('Helvetica-Bold').fontSize(18).text('Age : ', { continued: true }).font('Helvetica-Bold').fontSize(18).text(row[1]);
-        doc.font('Helvetica-Bold').fontSize(18).text('Location : ', { continued: true }).font('Helvetica-Bold').fontSize(18).text(row[2]);
-        doc.moveDown();
+    const reader1 = await readPaymentData();
+    const reader2 = await readMaintenanceCharges();
+    console.log(reader1);
+    console.log(reader2);
+    // const doc = new PDFDocument();
+    // doc.pipe(fs.createWriteStream('output.pdf'));
+    // doc.font('Helvetica-Bold').fontSize(18).text('Data from the sheet', { align: 'center' });
+    // doc.moveDown();
+    // doc.font('Helvetica').fontSize(12);
+    // reader.forEach(row => {
+    //     doc.font('Helvetica-Bold').fontSize(18).text('Name : ', { continued: true }).font('Helvetica-Bold').fontSize(18).text(row[0]);
+    //     doc.font('Helvetica-Bold').fontSize(18).text('Age : ', { continued: true }).font('Helvetica-Bold').fontSize(18).text(row[1]);
+    //     doc.font('Helvetica-Bold').fontSize(18).text('Location : ', { continued: true }).font('Helvetica-Bold').fontSize(18).text(row[2]);
+    //     doc.moveDown();
 
-    });
-    doc.end();
+    // });
+    // doc.end();
 
-    console.log('PDF generated');
+    // console.log('PDF generated');
 })();
