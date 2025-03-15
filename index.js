@@ -29,7 +29,7 @@ async function writeToSheet(values) {
 async function readPaymentData() {
   const sheets = google.sheets({ version: "v4", auth });
   const spreadsheetId = "1DZrPiYA2anm7pWcZc6zNsfQu-Ipj2nvxe1_if2LNqOc";
-  const range = "PaymentDetail2425!A1:G6";
+  const range = "PaymentDetail2425!A1:G82";
   try {
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId,
@@ -72,7 +72,31 @@ async function readMaintenanceCharges() {
     const reader2 = await readMaintenanceCharges();
     console.log(reader1);
     console.log(reader2);
-    // const doc = new PDFDocument();
+    const doc = new PDFDocument();
+    doc.pipe(fs.createWriteStream('output.pdf'));
+    doc.font('Helvetica-Bold').fontSize(18).text('Society Payment Bill', { align: 'center' });
+    doc.moveDown();
+    doc.font('Helvetica').fontSize(12);
+    let flatno = reader2[2][0];
+    let name = reader2[2][1];
+    let date, amount,type,mode;
+    reader1.forEach(row => {
+         if(row[3]==flatno){
+             date = row[0];
+             amount = row[5];
+             type = row[4];
+             mode = row[2];
+         }
+    });
+    doc.font('Helvetica-Bold').fontSize(18).text('Flat No : ', { continued: true }).font('Helvetica-Bold').fontSize(18).text(flatno);
+    doc.font('Helvetica-Bold').fontSize(18).text('Name : ', { continued: true }).font('Helvetica-Bold').fontSize(18).text(name);
+    doc.font('Helvetica-Bold').fontSize(18).text('Date : ', { continued: true }).font('Helvetica-Bold').fontSize(18).text(date);
+    doc.font('Helvetica-Bold').fontSize(18).text('Amount : ', { continued: true }).font('Helvetica-Bold').fontSize(18).text(amount);
+    doc.font('Helvetica-Bold').fontSize(18).text('Type : ', { continued: true }).font('Helvetica-Bold').fontSize(18).text(type);
+    doc.font('Helvetica-Bold').fontSize(18).text('Mode : ', { continued: true }).font('Helvetica-Bold').fontSize(18).text(mode);
+    doc.moveDown();
+    doc.end();
+    console.log('Pdf created');    // const doc = new PDFDocument();
     // doc.pipe(fs.createWriteStream('output.pdf'));
     // doc.font('Helvetica-Bold').fontSize(18).text('Data from the sheet', { align: 'center' });
     // doc.moveDown();
