@@ -2,25 +2,25 @@ const { google } = require("googleapis");
 const PDFDocument = require("pdfkit");
 const fs = require("fs");
 const nodemailer = require("nodemailer");
-const trainspoter = nodemailer.createTransport({
+const transporter = nodemailer.createTransport({
   secure: true,
   host: "smtp.gmail.com",
   port: 465,
   auth: {
-    user: "", // Your email address
-    pass: "", // app password
+    user: "sayaksen787@gmail.com", // Your email address
+    pass: "eagwfynjxymxaopw", // app password
   },
 });
 function sendEmail(to, subject, text, attachments) {
   const mailOptions = {
-    from: "", // Your email address
+    from: "sayaksen787@gmail.com", // Your email address
     to: to,
     subject: subject,
     text: text,
     attachments: attachments,
   };
 
-  trainspoter.sendMail(mailOptions, (error, info) => {
+  transporter.sendMail(mailOptions, (error, info) => {
     if (error) {
       console.error("Error sending email:", error);
     } else {
@@ -253,7 +253,7 @@ async function createReceipt() {
         updatePaymentStatus(rowNo);
         const attachments = [{ filename: `${name}.pdf`, path: `${name}.pdf` },];
         sendEmail(
-          "",// to mail
+          "sayaksen787@gmail.com",// to mail
           "Payment Receipt",
           "Please find the attached payment receipt.",
           attachments
