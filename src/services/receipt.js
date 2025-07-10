@@ -1,7 +1,8 @@
 const { readPaymentData, readMaintenanceCharges } = require("../config/read");
 const { updatePaymentStatus } = require("../config/write");
 const { generatePdf } = require("./pdf");
-const { sendEmail } = require("./email");
+const { sendReceiptEmail } = require("./email");
+const { generateReceiptId, generateDigitalSignature } = require("../utils/signature");
 
 async function createReceipt() {
   const reader1 = await readPaymentData();
@@ -21,15 +22,36 @@ async function createReceipt() {
         amount = row[5];
         type = row[4];
         mode = row[2];
+        
+        // Generate PDF with digital signature
         generatePdf(flatno, name, date, amount, type, mode);
+        
+        // Update payment status
         updatePaymentStatus(rowNo);
-        const attachments = [{ filename: `${name}.pdf`, path: `./outputs/${name}.pdf` },];
-        sendEmail(
-          mail,
-          "Payment Receipt",
-          "Please find the attached payment receipt.",
-          attachments
-        );
+        
+        // Prepare data for beautiful email
+        const residentData = {
+          name: name,
+          flatno: flatno,
+          email: mail
+        };
+        
+        const receiptData = {
+          amount: amount,
+          date: date,
+          type: type,
+          mode: mode,
+          receiptId: generateReceiptId(),
+          digitalSignature: generateDigitalSignature({ flatno, amount, date, type, mode })
+        };
+        
+        const attachments = [{ 
+          filename: `${name}.pdf`, 
+          path: `./outputs/${name}.pdf` 
+        }];
+        
+        // Send beautiful personalized email
+        sendReceiptEmail(residentData, receiptData, attachments);
       }
     });
   }
