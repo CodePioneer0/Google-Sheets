@@ -1,19 +1,32 @@
 {
-  "name": "google-sheets",
-  "version": "1.0.0",
-  "main": "index.js",
+  "name": "housing-society-receipt-system",
+  "version": "2.0.0",
+  "main": "src/app.js",
+  "description": "Automated receipt generation system for housing society payments",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js"
   },
-  "keywords": [],
+  "keywords": [
+    "receipt",
+    "google-sheets",
+    "pdf",
+    "email",
+    "housing-society",
+    "automation"
+  ],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
-    "fs": "^0.0.1-security",
+    "dotenv": "^16.6.1",
     "googleapis": "^144.0.0",
     "nodemailer": "^6.10.0",
-    "nodemon": "^3.1.10",
     "pdfkit": "^0.16.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  },
+  "engines": {
+    "node": ">=14.0.0"
   }
 }

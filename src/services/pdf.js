@@ -1,92 +1,14 @@
-const { google } = require("googleapis");
-const PDFDocument = require("pdfkit");
+require('dotenv').config();
 const fs = require("fs");
-const nodemailer = require("nodemailer");
-const transporter = nodemailer.createTransport({
-  secure: true,
-  host: "smtp.gmail.com",
-  port: 465,
-  auth: {
-    user: "sayaksen787@gmail.com", // Your email address
-    pass: "eagwfynjxymxaopw", // app password
-  },
-});
-function sendEmail(to, subject, text, attachments) {
-  const mailOptions = {
-    from: "sayaksen787@gmail.com", // Your email address
-    to: to,
-    subject: subject,
-    text: text,
-    attachments: attachments,
-  };
+const PDFDocument = require("pdfkit");
 
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.error("Error sending email:", error);
-    } else {
-      console.log("Email sent:", info.response);
-    }
-  });
-}
-const auth = new google.auth.GoogleAuth({
-  keyFile: "./google.json",
-  scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-});
-
-async function updatePaymentStatus(rowIndex) {
-  const sheets = google.sheets({ version: "v4", auth });
-  const spreadsheetId = "1DZrPiYA2anm7pWcZc6zNsfQu-Ipj2nvxe1_if2LNqOc";
-  const range = `PaymentDetail2425!G${rowIndex}`; // Update column G for that row
-
-  try {
-    await sheets.spreadsheets.values.update({
-      spreadsheetId,
-      range,
-      valueInputOption: "USER_ENTERED",
-      resource: {
-        values: [["ISSUED"]],
-      },
-    });
-    console.log(`Status updated to ISSUED for row ${rowIndex}`);
-  } catch (err) {
-    console.error(`Failed to update status for row ${rowIndex}:`, err);
-  }
-}
-async function readPaymentData() {
-  const sheets = google.sheets({ version: "v4", auth });
-  const spreadsheetId = "1DZrPiYA2anm7pWcZc6zNsfQu-Ipj2nvxe1_if2LNqOc";
-  const range = "PaymentDetail2425!A1:G82";
-  try {
-    const res = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range,
-    });
-    return res.data.values;
-  } catch (err) {
-    console.error("error", err);
-  }
-}
-async function readMaintenanceCharges() {
-  const sheets = google.sheets({ version: "v4", auth });
-  const spreadsheetId = "1DZrPiYA2anm7pWcZc6zNsfQu-Ipj2nvxe1_if2LNqOc";
-  const range = "MaintenanceCharges2425!A1:H35";
-  try {
-    const res = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range,
-    });
-    return res.data.values;
-  } catch (err) {
-    console.error("error", err);
-  }
-}
 function generatePdf(flatno, name, date, amount, type, mode) {
   const doc = new PDFDocument({
     margins: { top: 50, bottom: 50, left: 50, right: 50 },
     size: "A4",
   });
 
-  doc.pipe(fs.createWriteStream(`${name}.pdf`));
+  doc.pipe(fs.createWriteStream(`./outputs/${name}.pdf`));
 
   // Add header with logo placeholder and title
   doc
@@ -100,12 +22,12 @@ function generatePdf(flatno, name, date, amount, type, mode) {
   doc
     .fontSize(18)
     .font("Helvetica-Bold")
-    .text("HOUSING SOCIETY", { align: "center" });
+    .text(process.env.SOCIETY_NAME, { align: "center" });
   doc
     .fontSize(10)
     .font("Helvetica")
-    .text("123 Society Street, City, PIN: 123456", { align: "center" });
-  doc.text("Phone: +91 1234567890 | Email: society@example.com", {
+    .text(process.env.SOCIETY_ADDRESS, { align: "center" });
+  doc.text(`Phone: ${process.env.SOCIETY_PHONE} | Email: ${process.env.SOCIETY_EMAIL}`, {
     align: "center",
   });
 
@@ -231,35 +153,4 @@ function generatePdf(flatno, name, date, amount, type, mode) {
   doc.end();
   console.log("PDF receipt created");
 }
-async function createReceipt() {
-  const reader1 = await readPaymentData();
-  const reader2 = await readMaintenanceCharges();
-  // console.log(reader1);
-  // console.log(reader2);
-  let flatno, name, date, amount, type, mode, mail;
-  for (let i = 2; i < reader2.length; i++) {
-    flatno = reader2[i][0];
-    name = reader2[i][1];
-    mail = reader2[i][2];
-    let rowNo = 0;
-    reader1.forEach((row) => {
-      rowNo++;
-      if (row[3] == flatno && row[6] == "TO-ISSUE") {
-        date = row[0];
-        amount = row[5];
-        type = row[4];
-        mode = row[2];
-        generatePdf(flatno, name, date, amount, type, mode);
-        updatePaymentStatus(rowNo);
-        const attachments = [{ filename: `${name}.pdf`, path: `${name}.pdf` },];
-        sendEmail(
-          "sayaksen787@gmail.com",// to mail
-          "Payment Receipt",
-          "Please find the attached payment receipt.",
-          attachments
-        );
-      }
-    });
-  }
-}
-createReceipt();
+exports.generatePdf = generatePdf;
