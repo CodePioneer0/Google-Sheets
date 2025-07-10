@@ -11,14 +11,12 @@ function generatePdf(flatno, name, date, amount, type, mode) {
 
   doc.pipe(fs.createWriteStream(`./outputs/${name}.pdf`));
 
-  // Generate receipt data for signature
   const receiptData = { flatno, amount, date, type, mode };
   const digitalSignature = generateDigitalSignature(receiptData);
   const receiptId = generateReceiptId();
   const currentDate = new Date().toLocaleDateString();
   const timestamp = new Date().toISOString();
 
-  // Header Section
   doc
     .fontSize(10)
     .font("Helvetica")
@@ -26,7 +24,6 @@ function generatePdf(flatno, name, date, amount, type, mode) {
   doc.text(`Date: ${currentDate}`, 50, 75, { align: "right" });
   doc.moveDown(0.5);
 
-  // Society Header
   doc
     .fontSize(20)
     .font("Helvetica-Bold")
@@ -39,7 +36,6 @@ function generatePdf(flatno, name, date, amount, type, mode) {
     align: "center",
   });
 
-  // Horizontal line after header
   doc.moveDown(1);
   const lineY1 = 200;
   doc
@@ -49,19 +45,16 @@ function generatePdf(flatno, name, date, amount, type, mode) {
     .lineTo(doc.page.width - 50, lineY1)
     .stroke();
 
-  // Receipt Title
   doc
     .fontSize(18)
     .font("Helvetica-Bold")
     .fillColor("#2c3e50")
     .text("PAYMENT RECEIPT", 50, 220, { align: "center" });
 
-  // Bill Information Section
   const leftCol = 70;
   const rightCol = 320;
   let currentY = 270;
 
-  // Left Column - Resident Info
   doc
     .fontSize(12)
     .font("Helvetica-Bold")
@@ -78,7 +71,6 @@ function generatePdf(flatno, name, date, amount, type, mode) {
   currentY += 20;
   doc.text(`Resident: ${name}`, leftCol, currentY);
 
-  // Right Column - Payment Info
   currentY = 270;
   doc
     .fontSize(12)
@@ -99,13 +91,11 @@ function generatePdf(flatno, name, date, amount, type, mode) {
   currentY += 20;
   doc.text(`Payment Mode: ${mode}`, rightCol, currentY);
 
-  // Payment Details Table
   const tableTop = 400;
   const tableLeft = 70;
   const tableWidth = 450;
   const rowHeight = 30;
 
-  // Table Header
   doc
     .rect(tableLeft, tableTop, tableWidth, rowHeight)
     .fill("#3498db");
@@ -118,7 +108,6 @@ function generatePdf(flatno, name, date, amount, type, mode) {
     .text("Period", tableLeft + 200, tableTop + 10)
     .text("Amount", tableLeft + 350, tableTop + 10, { width: 85, align: "right" });
 
-  // Table Row
   const rowY = tableTop + rowHeight;
   doc
     .rect(tableLeft, rowY, tableWidth, rowHeight)
@@ -134,7 +123,6 @@ function generatePdf(flatno, name, date, amount, type, mode) {
     .text("Apr 2024 - Mar 2025", tableLeft + 200, rowY + 10)
     .text(`₹ ${amount}`, tableLeft + 350, rowY + 10, { width: 85, align: "right" });
 
-  // Total Row
   const totalY = rowY + rowHeight;
   doc
     .rect(tableLeft, totalY, tableWidth, rowHeight)
@@ -147,7 +135,6 @@ function generatePdf(flatno, name, date, amount, type, mode) {
     .text("TOTAL AMOUNT", tableLeft + 15, totalY + 10)
     .text(`₹ ${amount}`, tableLeft + 350, totalY + 10, { width: 85, align: "right" });
 
-  // Digital Signature Section
   const sigY = 550;
   doc
     .rect(50, sigY, 500, 100)
@@ -155,14 +142,12 @@ function generatePdf(flatno, name, date, amount, type, mode) {
     .fillColor("#f8f9fa")
     .fill();
 
-  // Signature Icon and Title
   doc
     .fontSize(14)
     .font("Helvetica-Bold")
     .fillColor("#2c3e50")
     .text("🔒 DIGITALLY VERIFIED", 70, sigY + 15);
 
-  // Signature Details in Two Columns
   doc
     .fontSize(9)
     .font("Helvetica")
@@ -176,14 +161,12 @@ function generatePdf(flatno, name, date, amount, type, mode) {
     .text(`Time: ${timestamp.split('T')[1].split('.')[0]}`, 320, sigY + 55)
     .text("Digitally signed document", 320, sigY + 70);
 
-  // Security Notice
   doc
     .fontSize(8)
     .font("Helvetica-Oblique")
     .fillColor("#7f8c8d")
     .text("⚠️ This document is digitally signed. Any modification will invalidate the signature.", 70, sigY + 85);
 
-  // Footer
   const footerY = 680;
   doc
     .strokeColor("#cccccc")

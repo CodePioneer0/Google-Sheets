@@ -7,8 +7,7 @@ const { generateReceiptId, generateDigitalSignature } = require("../utils/signat
 async function createReceipt() {
   const reader1 = await readPaymentData();
   const reader2 = await readMaintenanceCharges();
-  // console.log(reader1);
-  // console.log(reader2);
+  
   let flatno, name, date, amount, type, mode, mail;
   for (let i = 2; i < reader2.length; i++) {
     flatno = reader2[i][0];
@@ -23,13 +22,9 @@ async function createReceipt() {
         type = row[4];
         mode = row[2];
         
-        // Generate PDF with digital signature
         generatePdf(flatno, name, date, amount, type, mode);
-        
-        // Update payment status
         updatePaymentStatus(rowNo);
         
-        // Prepare data for beautiful email
         const residentData = {
           name: name,
           flatno: flatno,
@@ -50,7 +45,6 @@ async function createReceipt() {
           path: `./outputs/${name}.pdf` 
         }];
         
-        // Send beautiful personalized email
         sendReceiptEmail(residentData, receiptData, attachments);
       }
     });
