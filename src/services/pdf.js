@@ -1,6 +1,7 @@
 require('dotenv').config();
 const fs = require("fs");
 const PDFDocument = require("pdfkit");
+const { generateDigitalSignature, generateReceiptId } = require("../utils/signature");
 
 function generatePdf(flatno, name, date, amount, type, mode) {
   const doc = new PDFDocument({
@@ -10,147 +11,202 @@ function generatePdf(flatno, name, date, amount, type, mode) {
 
   doc.pipe(fs.createWriteStream(`./outputs/${name}.pdf`));
 
-  // Add header with logo placeholder and title
+  // Generate receipt data for signature
+  const receiptData = { flatno, amount, date, type, mode };
+  const digitalSignature = generateDigitalSignature(receiptData);
+  const receiptId = generateReceiptId();
+  const currentDate = new Date().toLocaleDateString();
+  const timestamp = new Date().toISOString();
+
+  // Header Section
   doc
     .fontSize(10)
     .font("Helvetica")
-    .text("Receipt #: INV-2024-001", { align: "right" });
-  doc.text(`Date: ${new Date().toLocaleDateString()}`, { align: "right" });
+    .text(`Receipt #: ${receiptId}`, 50, 60, { align: "right" });
+  doc.text(`Date: ${currentDate}`, 50, 75, { align: "right" });
   doc.moveDown(0.5);
 
-  // Society name and address
+  // Society Header
   doc
-    .fontSize(18)
+    .fontSize(20)
     .font("Helvetica-Bold")
-    .text(process.env.SOCIETY_NAME, { align: "center" });
+    .text(process.env.SOCIETY_NAME, 50, 120, { align: "center" });
   doc
-    .fontSize(10)
+    .fontSize(11)
     .font("Helvetica")
-    .text(process.env.SOCIETY_ADDRESS, { align: "center" });
-  doc.text(`Phone: ${process.env.SOCIETY_PHONE} | Email: ${process.env.SOCIETY_EMAIL}`, {
+    .text(process.env.SOCIETY_ADDRESS, 50, 150, { align: "center" });
+  doc.text(`Phone: ${process.env.SOCIETY_PHONE} | Email: ${process.env.SOCIETY_EMAIL}`, 50, 170, {
     align: "center",
   });
 
-  // Horizontal line
+  // Horizontal line after header
   doc.moveDown(1);
+  const lineY1 = 200;
   doc
-    .lineCap("butt")
-    .strokeColor("#999999")
-    .lineWidth(1)
-    .moveTo(50, doc.y)
-    .lineTo(doc.page.width - 50, doc.y)
+    .strokeColor("#cccccc")
+    .lineWidth(2)
+    .moveTo(50, lineY1)
+    .lineTo(doc.page.width - 50, lineY1)
     .stroke();
-  doc.moveDown(1);
 
-  // Bill title
+  // Receipt Title
   doc
-    .fontSize(16)
+    .fontSize(18)
     .font("Helvetica-Bold")
-    .text("PAYMENT RECEIPT", { align: "center" });
-  doc.moveDown(1);
+    .fillColor("#2c3e50")
+    .text("PAYMENT RECEIPT", 50, 220, { align: "center" });
 
-  // Create two columns for bill info
-  const leftColumnX = 70;
-  const rightColumnX = 300;
-  let currentY = doc.y;
+  // Bill Information Section
+  const leftCol = 70;
+  const rightCol = 320;
+  let currentY = 270;
 
-  // Left column - Resident information
+  // Left Column - Resident Info
   doc
     .fontSize(12)
     .font("Helvetica-Bold")
-    .text("BILL TO:", leftColumnX, currentY);
-  doc.moveDown(0.4);
+    .fillColor("#34495e")
+    .text("BILL TO:", leftCol, currentY);
+  
+  currentY += 25;
   doc
-    .fontSize(10)
+    .fontSize(11)
     .font("Helvetica")
-    .text(`Flat No: ${flatno}`, { continued: false });
-  doc.text(`Name: ${name}`, { continued: false });
-  doc.moveDown(0.5);
+    .fillColor("#000000")
+    .text(`Flat No: ${flatno}`, leftCol, currentY);
+  
+  currentY += 20;
+  doc.text(`Resident: ${name}`, leftCol, currentY);
 
-  // Right column - Payment information
+  // Right Column - Payment Info
+  currentY = 270;
   doc
     .fontSize(12)
     .font("Helvetica-Bold")
-    .text("PAYMENT DETAILS:", rightColumnX, currentY);
-  doc.moveDown(0.4);
+    .fillColor("#34495e")
+    .text("PAYMENT DETAILS:", rightCol, currentY);
+  
+  currentY += 25;
   doc
-    .fontSize(10)
+    .fontSize(11)
     .font("Helvetica")
-    .text(`Date: ${date}`, { continued: false });
-  doc.text(`Payment Type: ${type}`, { continued: false });
-  doc.text(`Payment Mode: ${mode}`, { continued: false });
+    .fillColor("#000000")
+    .text(`Payment Date: ${date}`, rightCol, currentY);
+  
+  currentY += 20;
+  doc.text(`Payment Type: ${type}`, rightCol, currentY);
+  
+  currentY += 20;
+  doc.text(`Payment Mode: ${mode}`, rightCol, currentY);
 
-  // Move down to start the payment table
-  doc.moveDown(2);
+  // Payment Details Table
+  const tableTop = 400;
+  const tableLeft = 70;
+  const tableWidth = 450;
+  const rowHeight = 30;
 
-  // Payment details table
-  const tableTop = doc.y;
-  const tableHeaders = ["Description", "Period", "Amount"];
-  const tableData = [[`${type} Charges`, "Apr 2024 - Mar 2025", `₹ ${amount}`]];
+  // Table Header
+  doc
+    .rect(tableLeft, tableTop, tableWidth, rowHeight)
+    .fill("#3498db");
+  
+  doc
+    .fontSize(12)
+    .font("Helvetica-Bold")
+    .fillColor("#ffffff")
+    .text("Description", tableLeft + 15, tableTop + 10)
+    .text("Period", tableLeft + 200, tableTop + 10)
+    .text("Amount", tableLeft + 350, tableTop + 10, { width: 85, align: "right" });
 
-  // Draw table header
-  doc.fontSize(10).font("Helvetica-Bold");
-  doc.rect(leftColumnX, tableTop, 450, 20).fill("#e6e6e6");
-  doc.fillColor("#000000");
-  doc.text(tableHeaders[0], leftColumnX + 10, tableTop + 6);
-  doc.text(tableHeaders[1], leftColumnX + 200, tableTop + 6);
-  doc.text(tableHeaders[2], leftColumnX + 350, tableTop + 6, {
-    width: 90,
-    align: "right",
-  });
+  // Table Row
+  const rowY = tableTop + rowHeight;
+  doc
+    .rect(tableLeft, rowY, tableWidth, rowHeight)
+    .stroke("#cccccc")
+    .fillColor("#ffffff")
+    .fill();
 
-  // Draw table rows
-  doc.fontSize(10).font("Helvetica");
-  let rowY = tableTop + 20;
-  tableData.forEach((row, i) => {
-    doc.rect(leftColumnX, rowY, 450, 20).stroke();
-    doc.text(row[0], leftColumnX + 10, rowY + 6);
-    doc.text(row[1], leftColumnX + 200, rowY + 6);
-    doc.text(row[2], leftColumnX + 350, rowY + 6, {
-      width: 90,
-      align: "right",
-    });
-    rowY += 20;
-  });
+  doc
+    .fontSize(11)
+    .font("Helvetica")
+    .fillColor("#000000")
+    .text(`${type} Charges`, tableLeft + 15, rowY + 10)
+    .text("Apr 2024 - Mar 2025", tableLeft + 200, rowY + 10)
+    .text(`₹ ${amount}`, tableLeft + 350, rowY + 10, { width: 85, align: "right" });
 
-  // Draw total row
-  doc.rect(leftColumnX, rowY, 450, 25).fill("#f0f0f0");
-  doc.fillColor("#000000");
-  doc.fontSize(12).font("Helvetica-Bold");
-  doc.text("Total", leftColumnX + 10, rowY + 7);
-  doc.text(`₹ ${amount}`, leftColumnX + 350, rowY + 7, {
-    width: 90,
-    align: "right",
-  });
+  // Total Row
+  const totalY = rowY + rowHeight;
+  doc
+    .rect(tableLeft, totalY, tableWidth, rowHeight)
+    .fill("#ecf0f1");
 
-  // Add notes
-  doc.moveDown(3);
-  doc.fontSize(10).font("Helvetica-Bold").text("Notes:");
+  doc
+    .fontSize(14)
+    .font("Helvetica-Bold")
+    .fillColor("#2c3e50")
+    .text("TOTAL AMOUNT", tableLeft + 15, totalY + 10)
+    .text(`₹ ${amount}`, tableLeft + 350, totalY + 10, { width: 85, align: "right" });
+
+  // Digital Signature Section
+  const sigY = 550;
+  doc
+    .rect(50, sigY, 500, 100)
+    .stroke("#3498db")
+    .fillColor("#f8f9fa")
+    .fill();
+
+  // Signature Icon and Title
+  doc
+    .fontSize(14)
+    .font("Helvetica-Bold")
+    .fillColor("#2c3e50")
+    .text("🔒 DIGITALLY VERIFIED", 70, sigY + 15);
+
+  // Signature Details in Two Columns
   doc
     .fontSize(9)
     .font("Helvetica")
-    .text(
-      "1. This is a computer generated receipt and does not require signature."
-    );
-  doc.text("2. Please keep this receipt for future reference.");
+    .fillColor("#34495e")
+    .text(`Signature ID: ${digitalSignature}`, 70, sigY + 40)
+    .text(`Receipt ID: ${receiptId}`, 70, sigY + 55)
+    .text(`Authorized by: ${process.env.SOCIETY_NAME}`, 70, sigY + 70);
 
-  // Add footer with horizontal line
-  doc.moveDown(2);
   doc
-    .lineCap("butt")
-    .strokeColor("#999999")
-    .lineWidth(1)
-    .moveTo(50, doc.y)
-    .lineTo(doc.page.width - 50, doc.y)
-    .stroke();
+    .text(`Generated: ${timestamp.split('T')[0]}`, 320, sigY + 40)
+    .text(`Time: ${timestamp.split('T')[1].split('.')[0]}`, 320, sigY + 55)
+    .text("Digitally signed document", 320, sigY + 70);
 
-  doc.moveDown(0.5);
+  // Security Notice
   doc
     .fontSize(8)
+    .font("Helvetica-Oblique")
+    .fillColor("#7f8c8d")
+    .text("⚠️ This document is digitally signed. Any modification will invalidate the signature.", 70, sigY + 85);
+
+  // Footer
+  const footerY = 680;
+  doc
+    .strokeColor("#cccccc")
+    .lineWidth(1)
+    .moveTo(50, footerY)
+    .lineTo(doc.page.width - 50, footerY)
+    .stroke();
+
+  doc
+    .fontSize(10)
     .font("Helvetica")
-    .text("Thank you for your payment!", { align: "center" });
+    .fillColor("#7f8c8d")
+    .text("Thank you for your payment! Keep this receipt for your records.", 50, footerY + 15, { 
+      align: "center" 
+    });
+
+  doc
+    .fontSize(8)
+    .text("This is a computer-generated receipt and does not require a physical signature.", 50, footerY + 35, { 
+      align: "center" 
+    });
 
   doc.end();
-  console.log("PDF receipt created");
+  console.log(`Professional PDF receipt generated: ${name}.pdf`);
 }
 exports.generatePdf = generatePdf;
